@@ -1,0 +1,30 @@
+# Build output
+build/
+build-win/
+cmake-build-*/
+out/
+
+# Compiled files
+*.exe
+*.obj
+*.o
+*.a
+*.lib
+*.dll
+*.pdb
+
+# Local data and generated output
+data/
+reports/
+check.log
+
+# Local backups and extracted patches
+backup_before_fixes/
+fixed_extract/
+binance_usdm_mm_fixed_files.zip
+
+# IDE and OS files
+.vscode/
+.idea/
+Thumbs.db
+.DS_Store
