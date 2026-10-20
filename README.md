@@ -1,6 +1,6 @@
 # Binance USD-M perpetual market maker
 
-C++17 market maker and historical backtester for Binance USDⓈ-M futures. The Bybit client, private session, and hedge-mode order indexing from the previous tree are gone. Inventory-aware spread, fee floor, gross cap, reduce-only take profit, and stop logic are preserved as one-way quote planning.
+C++17 market maker and historical backtester for Binance USDⓈ-M futures. Inventory-aware spread, fee floor, gross cap, reduce-only take profit, and stop logic are preserved as one-way quote planning.
 
 ## Endpoints
 
