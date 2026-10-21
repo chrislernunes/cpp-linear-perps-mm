@@ -104,6 +104,17 @@ PreparedRequest prepare_position(const std::string& api_key,
     return finish(api_key, api_secret, "GET", "/fapi/v2/positionRisk", query.str());
 }
 
+PreparedRequest prepare_open_orders(const std::string& api_key,
+                                    const std::string& api_secret,
+                                    const std::string& symbol,
+                                    std::int64_t timestamp_ms) {
+    if (api_key.empty() || api_secret.empty())
+        throw std::runtime_error("demo open-orders query requires demo API credentials");
+    std::ostringstream query;
+    query << "symbol=" << symbol << "&recvWindow=5000&timestamp=" << timestamp_ms;
+    return finish(api_key, api_secret, "GET", "/fapi/v1/openOrders", query.str());
+}
+
 DemoDecision demo_send_decision(bool demo_requested,
                                 bool check_only,
                                 int demo_http_status,

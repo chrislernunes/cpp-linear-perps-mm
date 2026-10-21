@@ -50,6 +50,11 @@ PreparedRequest prepare_position(const std::string& api_key,
                                  const std::string& symbol,
                                  std::int64_t timestamp_ms);
 
+PreparedRequest prepare_open_orders(const std::string& api_key,
+                                    const std::string& api_secret,
+                                    const std::string& symbol,
+                                    std::int64_t timestamp_ms);
+
 struct DemoDecision {
     bool send{false};
     std::string reason;

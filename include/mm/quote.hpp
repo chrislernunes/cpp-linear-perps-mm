@@ -76,7 +76,7 @@ struct OrderAction {
     std::string cancel_id;
 };
 
-// Inventory-aware passive ladder. One-way net inventory replaces Bybit hedge indexes.
+// Inventory-aware passive ladder using one-way net inventory.
 // Opening orders are post-only (GTX). Stops are reduce-only MARKET plans and are
 // sent only to the demo host by the demo executor.
 QuotePlan plan_quotes(const QuoteConfig& config,

@@ -2,6 +2,8 @@
 
 C++17 market maker and historical backtester for Binance USDⓈ-M futures. Inventory-aware spread, fee floor, gross cap, reduce-only take profit, and stop logic are preserved as one-way quote planning.
 
+This is a research and engineering project. Fills in the backtester are simulated. There is no verified live-trading performance.
+
 ## Endpoints
 
 | Use | Host | When |
@@ -15,40 +17,64 @@ There is no flag that sends orders to `fapi.binance.com`. `--check` never builds
 
 Demo credentials are `BINANCE_DEMO_API_KEY` and `BINANCE_DEMO_API_SECRET`. `BINANCE_API_KEY` is ignored. If the demo ping is not HTTP 200, no order URL is built.
 
+On shutdown after a demo run, the process attempts to cancel outstanding demo orders for the symbol and reconciles via the open-orders endpoint. If confirmation fails, a warning is printed that exchange-side orders may remain. Local order state is not trusted after API errors or WebSocket reconnects.
+
 ## Build
 
+Requires a C++17 compiler, CMake 3.20+, OpenSSL 3, and zlib.
+
+### Ubuntu (matches CI)
+
 ```bash
-cmake -S . -B build -DCMAKE_BUILD_TYPE=Release \
-  -DOPENSSL_INCLUDE_DIR=/path/to/openssl/include \
-  -DZLIB_INCLUDE_DIR=/path/to/zlib/include
+sudo apt-get update
+sudo apt-get install -y build-essential cmake ninja-build libssl-dev zlib1g-dev
+cmake -S . -B build -G Ninja -DCMAKE_BUILD_TYPE=Release
+cmake --build build --parallel
+ctest --test-dir build --output-on-failure
+```
+
+### Windows (existing CMake/Ninja setup)
+
+Use a recent Visual Studio or clang toolchain with Ninja, OpenSSL, and zlib available (e.g. via vcpkg or a prebuilt kit). Then:
+
+```bash
+cmake -S . -B build -G Ninja -DCMAKE_BUILD_TYPE=Release ^
+  -DOPENSSL_INCLUDE_DIR=C:/path/to/openssl/include ^
+  -DZLIB_INCLUDE_DIR=C:/path/to/zlib/include
 cmake --build build --config Release --parallel
 ctest --test-dir build --output-on-failure
 ```
 
-Link with OpenSSL 3 and zlib. On Windows also link `ws2_32` and `crypt32` (the CMake file does this). Set `SSL_CERT_FILE` if the CA bundle is not at `/etc/ssl/certs/ca-certificates.crt`.
+On Windows the CMake file also links `ws2_32` and `crypt32`. Set `SSL_CERT_FILE` if the CA bundle is not at the default location.
 
 ## Run
 
-Public connectivity check. This does not place orders.
+### Public market-data check
+
+Does not place orders.
 
 ```bash
 ./build/binance_market_maker --check --symbol BTCUSDT
 ```
 
-Public book and dry quotes for 20 seconds:
+Public book and dry quotes for 20 seconds (still no orders):
 
 ```bash
 ./build/binance_market_maker --symbol BTCUSDT --seconds 20
 ```
 
-Demo trading, only if the account is eligible and the keys are demo keys:
+### Demo-order functionality
+
+Only if the account is eligible and the keys are demo keys. Orders go exclusively to the demo endpoint. On exit the process attempts cancel-all + open-orders reconciliation.
 
 ```bash
 BINANCE_DEMO_API_KEY=... BINANCE_DEMO_API_SECRET=... \
   ./build/binance_market_maker --demo --symbol BTCUSDT --seconds 30
 ```
 
-Historical backtest from official daily files. `--tick`, `--step`, and `--min-qty` are required because this process does not invent exchange filters when `exchangeInfo` is unreachable.
+### Historical backtest
+
+From official daily files. `--tick`, `--step`, and `--min-qty` are required because this process does not invent exchange filters when `exchangeInfo` is unreachable.
 
 ```bash
 ./build/binance_backtest \
@@ -63,4 +89,4 @@ Reports: `report.md`, `summary.json`, `equity.csv`, `fills.csv`. Data manifests 
 
 ## Backtest limits
 
-Fills are simulated. A maker fill requires a real aggTrade to print strictly through the quote after the latency delay, and the fill size cannot exceed that print. `bookDepth` is percentage-bucket depth, not a tick book. Touches at the quote price are counted and not filled. Missing funding files stay missing.
+Fills are simulated. A maker fill requires a real aggTrade to print strictly through the quote after the latency delay, and the fill size cannot exceed that print. `bookDepth` is percentage-bucket depth, not a tick book. Touches at the quote price are counted and not filled. Missing funding files stay missing. Queue position, latency, fees, and historical depth-data limitations mean results are not exchange executions and do not imply live profitability.

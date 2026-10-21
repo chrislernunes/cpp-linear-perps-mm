@@ -1,0 +1,172 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>C++ Linear Perpetuals Market Maker · Binance USD-M Futures</title>
+  <meta name="description" content="C++17 implementation of a Binance USD-M linear perpetuals market-making simulator, public market-data client, and historical backtester.">
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'><rect width='16' height='16' fill='%23111'/><text x='2' y='12' font-size='10' fill='white' font-family='monospace'>MM</text></svg>">
+  <style>
+    :root {
+      --bg: #ffffff;
+      --fg: #111111;
+      --muted: #555555;
+      --border: #e5e5e5;
+      --code: #f6f6f6;
+      --mono: "IBM Plex Mono", ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+      --sans: "Inter", system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial, sans-serif;
+    }
+    * { box-sizing: border-box; }
+    html, body { margin: 0; padding: 0; background: var(--bg); color: var(--fg); font-family: var(--sans); font-size: 16px; line-height: 1.55; }
+    body { max-width: 920px; margin: 0 auto; padding: 2.5rem 1.5rem 4rem; }
+    a { color: var(--fg); text-decoration: underline; text-underline-offset: 3px; }
+    a:hover { text-decoration-thickness: 2px; }
+    header { display: flex; flex-wrap: wrap; align-items: baseline; justify-content: space-between; gap: 1rem; border-bottom: 1px solid var(--border); padding-bottom: 1.25rem; margin-bottom: 2.5rem; }
+    .title { font-size: 1.35rem; font-weight: 600; letter-spacing: -0.01em; }
+    .descriptor { font-family: var(--mono); font-size: 0.78rem; color: var(--muted); margin-top: 0.25rem; }
+    nav { display: flex; gap: 1.25rem; font-size: 0.9rem; }
+    nav a { text-decoration: none; color: var(--muted); }
+    nav a:hover { color: var(--fg); }
+    .ext { display: flex; gap: 0.75rem; align-items: center; }
+    .ext a { display: inline-flex; align-items: center; gap: 0.3rem; text-decoration: none; font-size: 0.85rem; color: var(--muted); border: 1px solid var(--border); padding: 0.3rem 0.6rem; border-radius: 2px; }
+    .ext a:hover { color: var(--fg); border-color: #ccc; }
+    h1 { font-size: 1.75rem; font-weight: 600; margin: 0 0 1rem; letter-spacing: -0.02em; }
+    h2 { font-size: 1.15rem; font-weight: 600; margin: 2.75rem 0 0.9rem; padding-top: 0.5rem; border-top: 1px solid var(--border); }
+    p, li { color: #222; }
+    .lead { font-size: 1.05rem; max-width: 68ch; }
+    .links { display: flex; gap: 1rem; margin: 1.25rem 0 2rem; flex-wrap: wrap; }
+    .links a { font-size: 0.9rem; }
+    .note { font-size: 0.85rem; color: var(--muted); font-family: var(--mono); margin: 0.5rem 0 1.5rem; }
+    .grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 1rem; margin: 1rem 0 1.5rem; }
+    .metric { border: 1px solid var(--border); padding: 0.9rem 1rem; }
+    .metric .label { font-family: var(--mono); font-size: 0.72rem; color: var(--muted); text-transform: uppercase; letter-spacing: 0.04em; }
+    .metric .value { font-family: var(--mono); font-size: 1.1rem; margin-top: 0.3rem; }
+    pre, code { font-family: var(--mono); font-size: 0.82rem; }
+    pre { background: var(--code); border: 1px solid var(--border); padding: 0.9rem 1rem; overflow-x: auto; margin: 0.75rem 0 1.25rem; }
+    ul { padding-left: 1.2rem; }
+    li { margin: 0.3rem 0; }
+    footer { margin-top: 3.5rem; padding-top: 1.25rem; border-top: 1px solid var(--border); font-size: 0.85rem; color: var(--muted); display: flex; flex-wrap: wrap; gap: 1rem; align-items: center; }
+    footer a { color: var(--muted); }
+    svg { width: 14px; height: 14px; fill: currentColor; }
+    @media (max-width: 640px) {
+      body { padding: 1.5rem 1rem 3rem; }
+      header { flex-direction: column; align-items: flex-start; }
+      nav { flex-wrap: wrap; gap: 0.75rem; }
+    }
+  </style>
+</head>
+<body>
+  <header>
+    <div>
+      <div class="title">C++ Linear Perpetuals Market Maker</div>
+      <div class="descriptor">Binance USD-M Futures · C++ · Backtesting</div>
+    </div>
+    <nav aria-label="Page sections">
+      <a href="#overview">Overview</a>
+      <a href="#architecture">Architecture</a>
+      <a href="#backtest">Backtest</a>
+      <a href="#validation">Validation</a>
+    </nav>
+    <div class="ext">
+      <a href="https://github.com/chrislernunes/cpp-linear-perps-mm" target="_blank" rel="noopener">
+        <svg viewBox="0 0 16 16" aria-hidden="true"><path d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27.68 0 1.36.09 2 .27 1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.013 8.013 0 0016 8c0-4.42-3.58-8-8-8z"/></svg>
+        GitHub
+      </a>
+      <a href="https://www.linkedin.com/in/chrisler-nunes/" target="_blank" rel="noopener" aria-label="LinkedIn">
+        <svg viewBox="0 0 16 16" aria-hidden="true"><path d="M0 1.146C0 .513.526 0 1.175 0h13.65C15.474 0 16 .513 16 1.146v13.708c0 .633-.526 1.146-1.175 1.146H1.175C.526 16 0 15.487 0 14.854V1.146zm4.943 12.248V6.169H2.542v7.225h2.401zm-1.2-8.212c.837 0 1.358-.554 1.358-1.248-.015-.709-.52-1.248-1.342-1.248-.822 0-1.359.54-1.359 1.248 0 .694.521 1.248 1.327 1.248h.016zm4.908 8.212V9.359c0-.216.016-.432.08-.586.173-.431.568-.878 1.232-.878.869 0 1.216.662 1.216 1.634v3.865h2.401V9.25c0-2.22-1.184-3.252-2.764-3.252-1.274 0-1.845.7-2.165 1.193v.025h-.016a5.54 5.54 0 0 1 .016-.025V6.169h-2.4c.03.678 0 7.225 0 7.225h2.4z"/></svg>
+      </a>
+      <a href="https://x.com/chrislernunes" target="_blank" rel="noopener" aria-label="X (Twitter)">
+        <svg viewBox="0 0 16 16" aria-hidden="true"><path d="M12.6.75h2.454l-5.36 6.142L16 15.25h-4.937l-3.867-5.07-4.425 5.07H.316l5.733-6.57L0 .75h5.063l3.495 4.633L12.601.75Zm-.86 13.028h1.36L4.323 2.145H2.865l8.875 11.633Z"/></svg>
+      </a>
+    </div>
+  </header>
+
+  <section id="overview">
+    <h1>C++ implementation of a linear perpetuals market maker</h1>
+    <p class="lead">A C++17 project that combines a public market-data client for Binance USD-M Futures, inventory-aware one-way quote planning, a demo-order path restricted to the official demo REST host, and a historical backtester that replays official daily files with simulated fills.</p>
+    <div class="links">
+      <a href="https://github.com/chrislernunes/cpp-linear-perps-mm">View source on GitHub</a>
+      <a href="#backtest">Read the methodology</a>
+    </div>
+    <p class="note">Research / engineering project. Simulated fills only. No claim of verified live profitability.</p>
+  </section>
+
+  <section id="results">
+    <h2>Results</h2>
+    <p>Historical simulation outputs (equity curve, drawdown, fill statistics, net PnL) are written to local report directories by the backtester (<code>report.md</code>, <code>summary.json</code>, <code>equity.csv</code>, <code>fills.csv</code>). These files are not checked into the repository.</p>
+    <div class="grid">
+      <div class="metric">
+        <div class="label">Example backtest</div>
+        <div class="value">Local only</div>
+      </div>
+      <div class="metric">
+        <div class="label">Instrument</div>
+        <div class="value">BTCUSDT (USD-M)</div>
+      </div>
+      <div class="metric">
+        <div class="label">Fill model</div>
+        <div class="value">Simulated</div>
+      </div>
+      <div class="metric">
+        <div class="label">Unit tests</div>
+        <div class="value">Present</div>
+      </div>
+    </div>
+    <p class="note">No performance numbers are displayed here because no committed sample run with verified series is available in the repository. Run the backtester locally to generate an example report.</p>
+  </section>
+
+  <section id="architecture">
+    <h2>Architecture</h2>
+    <p>CMake-based C++17 project. Core library sources live under <code>src/</code> with headers in <code>include/mm/</code>.</p>
+    <ul>
+      <li><strong>Quote planning</strong> — Inventory-aware spread, fee floor, gross cap, reduce-only take-profit and stop logic as one-way quotes (<code>src/quote.cpp</code>).</li>
+      <li><strong>Order book</strong> — Local book synchronized to Binance USD-M diff-depth rules: snapshot <code>lastUpdateId</code>, bridge the first event with <code>U &le; id &le; u</code>, then require <code>pu == previous u</code>. Stale updates and gaps trigger resync (<code>src/order_book.cpp</code>).</li>
+      <li><strong>Market data</strong> — Public REST and WebSocket only. Depth snapshots requested only after production REST returns HTTP 200. HTTP 451 is reported and not bypassed. Reconnects limited (<code>src/live.cpp</code>, <code>src/net.cpp</code>).</li>
+      <li><strong>Demo orders</strong> — Restricted to <code>https://demo-fapi.binance.com</code> after a successful demo ping and only with <code>BINANCE_DEMO_API_KEY</code> / <code>BINANCE_DEMO_API_SECRET</code>. No path sends orders to the production host. On shutdown, cancel-all is attempted and open orders are reconciled before reporting (<code>src/demo.cpp</code>, <code>src/live.cpp</code>).</li>
+      <li><strong>Historical backtest</strong> — Downloads official daily files from data.binance.vision, verifies SHA256, replays aggTrades with a latency-delayed strict-through fill model, applies funding when present, and writes reports (<code>src/backtest.cpp</code>, <code>src/history.cpp</code>, <code>src/report.cpp</code>).</li>
+      <li><strong>Tests</strong> — Unit tests cover order-book sequence handling, quote planning, demo URL guards, filter parsing, fill simulation, and zip round-trip (<code>tests/unit_tests.cpp</code>).</li>
+    </ul>
+    <p>See the <a href="https://github.com/chrislernunes/cpp-linear-perps-mm/tree/main/src">src</a> and <a href="https://github.com/chrislernunes/cpp-linear-perps-mm/tree/main/include/mm">include/mm</a> directories for the implementation.</p>
+  </section>
+
+  <section id="backtest">
+    <h2>Backtest</h2>
+    <p>The backtester consumes official Binance daily files for a given symbol and date. Required filters (<code>--tick</code>, <code>--step</code>, <code>--min-qty</code>) must be supplied by the operator when exchangeInfo is not used. A maker fill is recorded only when a real aggTrade prints strictly through the quote after the configured latency, and the fill quantity cannot exceed that print. Touches at the quote price are counted but not filled. <code>bookDepth</code> data is percentage-bucket depth, not a full tick book. Missing funding files remain missing.</p>
+    <pre>./build/binance_backtest \
+  --symbol BTCUSDT --date 2026-10-19 \
+  --tick 0.1 --step 0.001 --min-qty 0.001 --min-notional 50 \
+  --budget 1000 --max-net-qty 0.01 --latency-ms 200 \
+  --maker-fee 0.0002 --taker-fee 0.0005 \
+  --data-dir data --out reports/btcusdt-2026-10-19</pre>
+    <p class="note">Outputs are local. Queue position is not modeled. Latency, fees, and historical depth limitations apply. Results are not exchange executions.</p>
+  </section>
+
+  <section id="validation">
+    <h2>Validation and limitations</h2>
+    <p>Build and run the existing unit tests:</p>
+    <pre># Ubuntu
+sudo apt-get install -y build-essential cmake ninja-build libssl-dev zlib1g-dev
+cmake -S . -B build -G Ninja -DCMAKE_BUILD_TYPE=Release
+cmake --build build --parallel
+ctest --test-dir build --output-on-failure</pre>
+    <p>Public market-data check (no orders):</p>
+    <pre>./build/binance_market_maker --check --symbol BTCUSDT</pre>
+    <p>Demo orders are possible only with explicit <code>--demo</code>, a successful demo ping, and demo credentials. The process attempts to cancel outstanding demo orders and reconcile open orders on exit. If confirmation fails, a warning is emitted that exchange-side orders may remain.</p>
+    <ul>
+      <li>Simulated fills ≠ exchange execution.</li>
+      <li>No modeling of queue position.</li>
+      <li>Fixed latency and fee assumptions.</li>
+      <li>Historical depth is bucketed; full L2 is not reconstructed from the daily files used.</li>
+      <li>Unit tests validate logic and guards; they do not validate trading profitability.</li>
+      <li>No live production order path exists.</li>
+    </ul>
+  </section>
+
+  <footer>
+    <a href="https://github.com/chrislernunes/cpp-linear-perps-mm">Repository</a>
+    <a href="https://www.linkedin.com/in/chrisler-nunes/" aria-label="LinkedIn">LinkedIn</a>
+    <a href="https://x.com/chrislernunes" aria-label="X">X</a>
+    <span>Research / engineering project. No claim of verified live profitability.</span>
+  </footer>
+</body>
+</html>

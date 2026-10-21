@@ -187,6 +187,8 @@ int run_live(const LiveOptions& options) {
             std::cerr << "[public] websocket closed, reconnect " << reconnects << "\n";
             book.reset();
             snapshot_requested = false;
+            // Local resting set may no longer match exchange-side state after a reconnect.
+            resting.clear();
             if (!connect_public(ws, stream, 1))
                 break;
             continue;
@@ -309,10 +311,61 @@ int run_live(const LiveOptions& options) {
     std::cerr << "[public] bookTicker messages " << book_tickers
               << (book.synced() ? " depth book synced\n" : " depth book NOT synced\n");
     std::cerr << "[public] websocket reconnects " << reconnects << "\n";
-    if (!decision.send || demo_halted)
-        std::cerr << "[demo] no order was left working by this process\n";
-    else
-        std::cerr << "[demo] working orders " << resting.size() << " on " << kDemoRestHost << "\n";
+
+    // Demo-order cleanup: cancel any outstanding orders this process may have created,
+    // then reconcile via openOrders before reporting. Local resting is not trusted
+    // after errors, reconnects, or API failures.
+    if (decision.send && key && secret && key[0] && secret[0]) {
+        const auto now = std::chrono::duration_cast<std::chrono::milliseconds>(
+                             std::chrono::system_clock::now().time_since_epoch())
+                             .count();
+        bool cleanup_ok = true;
+        try {
+            const PreparedRequest cancel_all = prepare_cancel_all(key, secret, options.symbol, now);
+            const HttpResponse cancel_resp = execute_demo(http, cancel_all);
+            if (cancel_resp.status != 200 || !cancel_resp.completed) {
+                std::cerr << "[demo] cancel-all failed status=" << cancel_resp.status
+                          << "; exchange-side orders may remain\n";
+                cleanup_ok = false;
+            } else {
+                std::cerr << "[demo] cancel-all requested on " << kDemoRestHost << "\n";
+            }
+        } catch (const std::exception& error) {
+            std::cerr << "[demo] cancel-all error: " << error.what()
+                      << "; exchange-side orders may remain\n";
+            cleanup_ok = false;
+        }
+
+        int open_count = -1;
+        try {
+            const PreparedRequest query = prepare_open_orders(key, secret, options.symbol, now + 1);
+            const HttpResponse query_resp = execute_demo(http, query);
+            if (query_resp.status == 200 && query_resp.completed && !query_resp.body.empty()) {
+                const Json opens = parse_json(query_resp.body);
+                if (opens.type == Json::Type::Array)
+                    open_count = static_cast<int>(opens.a.size());
+                else
+                    cleanup_ok = false;
+            } else {
+                cleanup_ok = false;
+            }
+        } catch (const std::exception& error) {
+            std::cerr << "[demo] openOrders query error: " << error.what() << "\n";
+            cleanup_ok = false;
+        }
+
+        if (cleanup_ok && open_count == 0) {
+            std::cerr << "[demo] confirmed no open orders remain on " << kDemoRestHost << "\n";
+        } else if (cleanup_ok && open_count > 0) {
+            std::cerr << "[demo] warning: " << open_count
+                      << " open order(s) still reported by demo exchange after cancel-all\n";
+        } else {
+            std::cerr << "[demo] warning: cleanup confirmation failed; exchange-side demo orders may remain\n";
+        }
+        resting.clear();
+    } else {
+        std::cerr << "[demo] no demo orders were sent by this process\n";
+    }
     return 0;
 }
 
