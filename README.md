@@ -1,4 +1,4 @@
-# Binance USD-M perpetual market maker
+# Binance USD-M linear perpetuals market maker
 
 C++17 market maker and historical backtester for Binance USDⓈ-M futures. Inventory-aware spread, fee floor, gross cap, reduce-only take profit, and stop logic are preserved as one-way quote planning.
 
